@@ -1,16 +1,16 @@
 const { query } = require('express')
 const ApiError = require('../error/ApiErrors')
-const {User} = require('../models/models')
+const { User } = require('../models/models')
 
 class UserController {
     async registration(req, res, next){
         const {email, password} = req.body
-        if (!email, password){
-            return next(ApiError.badRequest('Эмейл или пароль не введины'))
+        if (!email || !password){
+            return next(ApiError.badRequest('Email или пароль не введены.'))
         }
         const candidate = await User.findOne({where: {email}})
         if (candidate){
-            return next(ApiError.badRequest('Пользователь с таким email уже существует'))
+            return next(ApiError.badRequest('Такой пользователь уже существует.'))
         }
         const user = await User.create({email, password})
         return res.json({message: user})
