@@ -2,6 +2,16 @@ const { query } = require('express')
 const ApiError = require('../error/ApiErrors')
 const { User } = require('../models/models')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
+
+
+const generateJWT = (id, email, password, role) => {
+    return jwt.sign(
+        {id, email, password, role},
+        process.env.SECRET_KEY,
+        {expiresIn: '24h'}
+    )
+}
 
 class UserController {
     async registration(req, res, next){
@@ -15,16 +25,22 @@ class UserController {
         }
         const hashPassword = await bcrypt.hash(password, 5)
         const user = await User.create({email, password: hashPassword})
-        return res.json({message: user})
+        const token = generateJWT(user.id, user.email, user.password, user.role)
+        return res.json(token)
     }
 
     async login(req, res, next){
         const {email, password} = req.body
-        const user = await User.findOne({where: {email, password}})
+        const user = await User.findOne({where: {email}})
         if (!user){
             return next(ApiError.internal('Неверный eMail или пароль.'))
         }
-        return res.json({message: "Вы авторизовались."})
+        let comparePassword = bcrypt.compareSync(password, user.password)
+        if (!comparePassword){
+            return next(ApiError.internal('Неверный eMail или пароль.'))
+        }
+        const token = generateJWT(user.id, user.email, user.password, user.role)
+        return res.json(token)
     }
 
     async check(req, res, next){
